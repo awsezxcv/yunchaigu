@@ -79,7 +79,7 @@
       <view class="batch-header"><text class="batch-action" bindtap="closeBatchAdd" role="button">取消</text><text class="batch-title">批量添加</text><text class="batch-action is-submit" bindtap="submitBatchAdd" role="button">提交</text></view>
       <text class="batch-help">每行输入一个选项，空行会自动忽略</text>
       <text class="batch-count">已输入 {{batchCount}} / 200 条</text>
-      <textarea class="batch-textarea" value="{{batchText}}" maxlength="-1" auto-height placeholder="例如：&#10;徽章&#10;立牌&#10;明信片" bindinput="changeBatchText" />
+      <textarea class="batch-textarea" value="{{batchText}}" maxlength="-1" placeholder="例如：每行分别输入 徽章、立牌、明信片" bindinput="changeBatchText" />
     </view>
   </view>
 </view>
