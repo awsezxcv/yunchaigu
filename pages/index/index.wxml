@@ -1,0 +1,76 @@
+<view class="app-shell">
+  <view class="topbar">
+    <view class="brand"><image class="brand-logo" src="/assets/logo-chaigu.png" mode="aspectFit" /><text>在线拆谷工具</text></view>
+  </view>
+
+  <view class="stage">
+    <text class="eyebrow">当前方案 · {{activeCount}} 个可选结果</text>
+    <view class="scheme-title" bindtap="openEditor" role="button"><text class="scheme-title-text">{{plan.title || '未命名方案'}}</text></view>
+    <text class="helper">{{hint}}</text>
+
+    <view id="draw-card" class="draw-card {{shakeClass}}" bindtap="draw" hover-class="card-pressed" hover-start-time="0" hover-stay-time="40" role="button" aria-label="点击抽取结果">
+      <view id="card-inner" class="card-inner" style="transform: rotateY({{cardAngle}}deg); -webkit-transform: rotateY({{cardAngle}}deg);">
+        <view class="card-face card-front" style="background: {{cardColor}};">
+          <image class="question-mark-icon" src="/assets/question-mark.svg" mode="aspectFit" /><text class="card-caption">点击揭晓</text>
+        </view>
+        <view class="card-face card-back" style="background: {{cardBackColor}};">
+          <text class="result-label">本次结果</text><text class="result-text">{{resultText}}</text><text class="again-label">再次点击重新抽取</text>
+        </view>
+      </view>
+    </view>
+    <button class="secondary-button" bindtap="shuffle" hover-class="secondary-button-pressed" hover-start-time="0" hover-stay-time="80">打乱卡片</button>
+    <button class="history-button" bindtap="openHistory" hover-class="history-button-pressed" hover-start-time="0" hover-stay-time="60">历史记录</button>
+  </view>
+
+  <view wx:if="{{panelOpen}}" class="panel-mask" bindtap="closePanel">
+    <view class="panel-content {{panelClosing ? 'is-closing' : ''}}" catchtap="stopPropagation">
+      <view class="panel-header"><text class="panel-title">方案配置</text><view class="panel-close" bindtap="closePanel" role="button">关闭</view></view>
+      <view class="panel-tabs">
+        <view class="panel-tab-indicator {{panelMode === 'plans' ? 'is-right' : ''}}"></view>
+        <button class="panel-tab {{panelMode === 'editor' ? 'is-active' : ''}}" bindtap="openEditor">当前方案</button>
+        <button class="panel-tab {{panelMode === 'plans' ? 'is-active' : ''}}" bindtap="openPlanManager">方案列表</button>
+      </view>
+
+      <block wx:if="{{panelMode === 'plans'}}">
+        <view class="scheme-list">
+          <view wx:for="{{plans}}" wx:key="id" class="scheme-item {{item.id === plan.id ? 'is-active' : ''}}">
+            <view class="scheme-select" data-id="{{item.id}}" bindtap="selectPlan" role="button"><text>{{item.title || '未命名方案'}}</text><text>{{item.validCount}} 个选项</text></view>
+            <view class="scheme-edit" data-id="{{item.id}}" bindtap="editPlan" role="button"><text>编辑</text></view>
+            <view class="scheme-delete {{plans.length === 1 ? 'is-disabled' : ''}}" data-id="{{item.id}}" bindtap="deletePlan" role="button"><text>删除</text></view>
+          </view>
+        </view>
+        <button class="add-button" bindtap="createPlan">+ 新建方案</button>
+      </block>
+
+      <block wx:else>
+        <view class="field"><text>方案名称</text><input value="{{plan.title}}" maxlength="30" placeholder="例如：今天拆哪一谷？" bindinput="changeTitle" /></view>
+        <view class="setting-row"><view><text class="setting-label">不重复抽取</text><text class="setting-help">关闭时，已抽中的选项仍会参与下一次抽取</text></view><switch checked="{{plan.noRepeat}}" color="#4f8ff7" bindchange="toggleNoRepeat" /></view>
+        <view class="options-heading"><view><view class="options-title-row"><text class="setting-label">选项与权重</text><text class="organize-button" bindtap="sortOptions" role="button">整理</text></view><text class="setting-help">权重越高，抽中的概率越大</text></view><text class="total-weight">总权重 {{totalWeight}}</text></view>
+        <view class="option-list">
+          <view wx:for="{{plan.options}}" wx:key="id" class="option-row">
+            <input class="option-name" value="{{item.name}}" data-id="{{item.id}}" data-field="name" maxlength="30" placeholder="选项内容" bindinput="changeOption" />
+            <input class="option-weight" value="{{item.weight}}" data-id="{{item.id}}" data-field="weight" type="number" bindinput="changeOption" />
+            <text class="probability">{{item.probability}}</text>
+            <view class="delete-option {{plan.options.length <= 2 ? 'is-disabled' : ''}}" data-id="{{item.id}}" bindtap="deleteOption" role="button"><image class="delete-icon" src="/assets/close-line.svg" mode="aspectFit" /></view>
+          </view>
+        </view>
+        <button class="add-button" bindtap="addOption">+ 添加选项</button>
+        <text wx:if="{{activeCount < 2}}" class="validation">至少保留 2 个名称和权重均有效的选项。</text>
+      </block>
+    </view>
+  </view>
+
+  <view wx:if="{{historyOpen}}" class="panel-mask" bindtap="closeHistory">
+    <view class="panel-content {{historyClosing ? 'is-closing' : ''}}" catchtap="stopPropagation">
+      <view class="panel-header"><text class="panel-title">历史记录</text><view class="panel-close" bindtap="closeHistory" role="button">关闭</view></view>
+      <text class="history-summary">最近 {{history.length}} 条 · 最多保留 100 条</text>
+      <view wx:if="{{history.length}}" class="history-list">
+        <view wx:for="{{history}}" wx:key="id" class="history-item">
+          <view class="history-main"><text class="history-result">{{item.result}}</text><text class="history-plan">{{item.planTitle}}</text></view>
+          <text class="history-time">{{item.displayTime}}</text>
+        </view>
+      </view>
+      <view wx:else class="history-empty"><text>还没有翻牌记录</text><text>点击卡片后，结果会显示在这里</text></view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,1 @@
+{ "desc": "在线拆谷工具", "rules": [{ "action": "allow", "page": "*" }] }

@@ -1,0 +1,9 @@
+page {
+  min-height: 100%;
+  color: #161a24;
+  background: #f7f8fc;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+button { margin: 0; padding: 0; line-height: normal; background: transparent; }
+button::after { border: 0; }
