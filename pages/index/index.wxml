@@ -54,7 +54,7 @@
             <view class="delete-option {{plan.options.length <= 2 ? 'is-disabled' : ''}}" data-id="{{item.id}}" bindtap="deleteOption" role="button"><image class="delete-icon" src="/assets/close-line.svg" mode="aspectFit" /></view>
           </view>
         </view>
-        <button class="add-button" bindtap="addOption">+ 添加选项</button>
+        <view class="option-actions"><button class="add-button" bindtap="addOption">+ 添加选项</button><button class="batch-add-button" bindtap="openBatchAdd">批量添加</button></view>
         <text wx:if="{{activeCount < 2}}" class="validation">至少保留 2 个名称和权重均有效的选项。</text>
       </block>
     </view>
@@ -71,6 +71,15 @@
         </view>
       </view>
       <view wx:else class="history-empty"><text>还没有翻牌记录</text><text>点击卡片后，结果会显示在这里</text></view>
+    </view>
+  </view>
+
+  <view wx:if="{{batchOpen}}" class="panel-mask batch-mask" bindtap="closeBatchAdd">
+    <view class="panel-content batch-panel {{batchClosing ? 'is-closing' : ''}}" catchtap="stopPropagation">
+      <view class="batch-header"><text class="batch-action" bindtap="closeBatchAdd" role="button">取消</text><text class="batch-title">批量添加</text><text class="batch-action is-submit" bindtap="submitBatchAdd" role="button">提交</text></view>
+      <text class="batch-help">每行输入一个选项，空行会自动忽略</text>
+      <text class="batch-count">已输入 {{batchCount}} / 200 条</text>
+      <textarea class="batch-textarea" value="{{batchText}}" maxlength="-1" auto-height placeholder="例如：&#10;徽章&#10;立牌&#10;明信片" bindinput="changeBatchText" />
     </view>
   </view>
 </view>

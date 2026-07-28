@@ -26,6 +26,7 @@ function formatHistoryTime(timestamp) {
   const pad = value => String(value).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
+function batchNames(value) { return value.split(/\r?\n/).map(name => name.trim()).filter(Boolean).slice(0, 200) }
 function tintColor(hex) {
   const color = Number.parseInt(hex.slice(1), 16)
   const channel = shift => Math.round(255 - (255 - ((color >> shift) & 255)) * 0.16)
@@ -50,7 +51,7 @@ function normalizeRotation(rotation) {
 }
 
 Page({
-  data: { plans: [], plan: {}, history: [], activeCount: 0, totalWeight: 0, cardColor: PALETTE[0], cardBackColor: tintColor(PALETTE[0]), cardAngle: 0, resultText: '准备好了', hint: '', hasResult: false, shakeClass: '', panelOpen: false, panelClosing: false, panelMode: 'editor', historyOpen: false, historyClosing: false },
+  data: { plans: [], plan: {}, history: [], activeCount: 0, totalWeight: 0, cardColor: PALETTE[0], cardBackColor: tintColor(PALETTE[0]), cardAngle: 0, resultText: '准备好了', hint: '', hasResult: false, shakeClass: '', panelOpen: false, panelClosing: false, panelMode: 'editor', historyOpen: false, historyClosing: false, batchOpen: false, batchClosing: false, batchText: '', batchCount: 0 },
   onLoad() { this.workspace = loadWorkspace(); this.hasResult = false; this.cardRotation = 0; this.drawVersion = 0; this.shakeVersion = 0; this.shakeCycle = 0; this.flipAnimation = null; this.resultTimer = null; this.shakeTimer = null; this.saveTimer = null; this.render() },
   onHide() { if (this.shakeTimer) { clearTimeout(this.shakeTimer); this.shakeTimer = null } if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; this.save() } },
   save() { wx.setStorageSync(STORAGE_KEY, this.workspace) },
@@ -175,6 +176,7 @@ Page({
   openEditor() { if (this.panelCloseTimer) { clearTimeout(this.panelCloseTimer); this.panelCloseTimer = null } this.setData({ panelOpen: true, panelClosing: false, panelMode: 'editor' }); this.render() },
   openPlanManager() { if (this.panelCloseTimer) { clearTimeout(this.panelCloseTimer); this.panelCloseTimer = null } this.setData({ panelOpen: true, panelClosing: false, panelMode: 'plans' }); this.render() },
   openHistory() { if (this.historyCloseTimer) { clearTimeout(this.historyCloseTimer); this.historyCloseTimer = null } this.setData({ historyOpen: true, historyClosing: false }) },
+  openBatchAdd() { if (this.batchCloseTimer) { clearTimeout(this.batchCloseTimer); this.batchCloseTimer = null } this.setData({ batchOpen: true, batchClosing: false, batchText: '', batchCount: 0 }) },
   closePanel() {
     if (!this.data.panelOpen) return
     if (this.panelCloseTimer) clearTimeout(this.panelCloseTimer)
@@ -199,6 +201,18 @@ Page({
       this.historyCloseTimer = historyCloseTimer
     })
   },
+  closeBatchAdd() {
+    if (!this.data.batchOpen) return
+    if (this.batchCloseTimer) clearTimeout(this.batchCloseTimer)
+    this.setData({ batchClosing: true }, () => {
+      const batchCloseTimer = setTimeout(() => {
+        if (this.batchCloseTimer !== batchCloseTimer) return
+        this.batchCloseTimer = null
+        this.setData({ batchOpen: false, batchClosing: false })
+      }, 100)
+      this.batchCloseTimer = batchCloseTimer
+    })
+  },
   selectPlan(event) { this.workspace.activePlanId = event.currentTarget.dataset.id; this.clearAnimation('#card-inner'); this.cardRotation = 0; this.hasResult = false; this.setData({ resultText: '准备好了', cardAngle: 0 }); this.save(); this.render(); this.closePanel() },
   editPlan(event) { this.workspace.activePlanId = event.currentTarget.dataset.id; this.clearAnimation('#card-inner'); this.cardRotation = 0; this.hasResult = false; this.setData({ panelMode: 'editor', resultText: '准备好了', cardAngle: 0 }); this.save(); this.render() },
   createPlan() { const plan = createPlan('新方案'); this.workspace.plans.push(plan); this.workspace.activePlanId = plan.id; this.clearAnimation('#card-inner'); this.cardRotation = 0; this.hasResult = false; this.setData({ panelMode: 'editor', resultText: '准备好了', cardAngle: 0 }); this.save(); this.render() },
@@ -213,6 +227,8 @@ Page({
   changeOption(event) { const plan = this.currentPlan(); const option = plan.options.find(item => item.id === event.currentTarget.dataset.id); if (!option) return; const { field } = event.currentTarget.dataset; option[field] = field === 'weight' ? Math.max(1, Math.min(9999, Number(event.detail.value) || 1)) : event.detail.value; this.save(); this.render() },
   sortOptions() { this.currentPlan().options.sort((left, right) => { const leftName = left.name.trim(); const rightName = right.name.trim(); if (!leftName) return rightName ? 1 : 0; if (!rightName) return -1; return leftName.localeCompare(rightName, 'zh-Hans-CN') }); this.save(); this.render() },
   addOption() { this.currentPlan().options.push({ id: createId(), name: '', weight: 1, selected: false }); this.save(); this.render() },
+  changeBatchText(event) { const batchText = event.detail.value.split(/\r?\n/).slice(0, 200).join('\n'); this.setData({ batchText, batchCount: batchNames(batchText).length }) },
+  submitBatchAdd() { const names = batchNames(this.data.batchText); if (!names.length) { wx.showToast({ title: '请输入至少一个选项', icon: 'none' }); return } this.currentPlan().options.push(...names.map(name => ({ id: createId(), name, weight: 1, selected: false }))); this.save(); this.render(); this.closeBatchAdd() },
   deleteOption(event) { const plan = this.currentPlan(); if (plan.options.length <= 2) return; plan.options = plan.options.filter(option => option.id !== event.currentTarget.dataset.id); this.save(); this.render() },
   onShareAppMessage() { return { title: '在线拆谷工具', path: '/pages/index/index' } },
   onShareTimeline() { return { title: '在线拆谷工具' } }
